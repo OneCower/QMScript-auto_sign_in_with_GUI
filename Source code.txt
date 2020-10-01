@@ -1,0 +1,820 @@
+DimEnv Nox_Start
+Nox_Start = 0
+Dimenv ResetWaitTime
+Dimenv WaitStatus
+Dimenv TotalTime
+ResetWaitTime = 0
+BeginThread CountdownTimer
+BeginThread SingInProgram
+//定位夜神視窗位置
+Function Find_Current_Nox_Location//(ok)
+    FindPic 230,130,1605,175,"Attachment:\定位夜神模擬器位置.bmp",0.9,intX,intY
+    If intX > 0 And intY > 0 Then 
+        CurrentNoxLeft = intX+1
+        CurrentNoxTop = intY + 1
+        CurrentNoxRight = intX + 1 + 1319
+        CurrentNoxBottom = intY + 1 + 751
+    End If
+End Function
+//搜尋夜神視窗裡面的刺蝟貓閱讀APP，並點擊(會重複找)
+Function Find_HBookApp_And_Click_In_Nox_R()//(ok)
+    Do
+        Call Find_Current_Nox_Location
+        Form1.InputBox3.Text = "找App-0點擊"
+        //605是刺蝟貓與夜神視窗左邊距離，340是刺蝟貓與夜神視窗上邊距離，其餘以此類推
+        FindPic CurrentNoxLeft+605,CurrentNoxTop+340,CurrentNoxRight-635,CurrentNoxBottom-320,"Attachment:\刺蝟貓閱讀APP.bmp",0.7,intX,intY
+        If intX > 0 And intY > 0 Then 
+            MoveTo intX+25, intY+25
+            Delay 10
+            LeftClick 1
+            Exit Do
+        End If
+        Form1.InputBox3.Text = "找App-1夜神桌面沒回應"
+        Call Nox_No_Respond//跳出夜神桌面沒回應時的對應
+        Form1.InputBox3.Text = "找App-2是否橫置"
+        Call Check_App_Close//檢查夜神是否橫置，來確定是否跳出了APP，並點擊回來
+        Form1.InputBox3.Text = "找App-3找CA"
+        Call Deal_CA
+    Loop
+End Function
+//搜尋夜神視窗裡面的刺蝟貓閱讀APP，並點擊(不會重複)
+Function Find_HBookApp_And_Click_In_Nox()//(ok)
+    Call Find_Current_Nox_Location
+    FindPic CurrentNoxLeft+605,CurrentNoxTop+340,CurrentNoxRight-635,CurrentNoxBottom-320,"Attachment:\刺蝟貓閱讀APP.bmp",0.7,intX,intY
+    If intX > 0 And intY > 0 Then 
+        MoveTo intX+25, intY+25
+        Delay 10
+        LeftClick 1
+    End If
+    Form1.InputBox3.Text = "找NR_App-1沒會應"
+    Call Nox_No_Respond//跳出夜神桌面沒回應時的對應
+    Form1.InputBox3.Text = "找NR_App-2是否橫置"
+    Call Check_App_Close//檢查夜神是否橫置，來確定是否跳出了APP，並點擊回來
+    Form1.InputBox3.Text = "找NR_App-3找CA"
+    Call Deal_CA
+End Function
+//跳出憑證問題時處理
+Function Deal_CA()//(ok)
+    FindPic 580,307,1490,811,"Attachment:\允許此App變更.bmp",0.9,intX,intY
+    If intX > 0 And intY > 0 Then 
+        Do
+            FindPic 580,307,1490,811,"Attachment:\允許此App變更.bmp",0.9,intX,intY
+            If intX > 0 And intY > 0 Then
+                MoveTo intX+125, intY+280
+                Delay 100
+                If CLng(Form1.WarringTimes.Text) > 0 Then
+                    Pushbullet_Send_Message_Loop ("憑證問題")
+                End If
+                
+            Else 
+                Exit Do
+            End If
+        Loop
+    End If
+End Function
+//第一次打開書客會有說明，這是拿來跳過說明的Function//無用function
+//Function First_Open
+//    FindPic 800,421,1063,471,"Attachment:\書架操作方式調整.bmp",0.9,intX,intY
+//    If intX > 0 And intY > 0 Then 
+//        MoveTo 800, 421
+//        LeftClick 1
+//    End If
+//End Function
+//跳出夜神桌面沒回應時的對應
+Function Nox_No_Respond()//(待改)
+	FindPic 743,469,1176,564,"Attachment:\夜神桌面沒有回應.bmp",0.9,intX,intY
+	If intX > 0 And intY > 0 Then
+	MoveTo 1068, 603
+    	LeftClick 1
+	End If
+End Function
+//在刺蝟貓閱讀裡簽到
+Function Sign_In(FirstSingIn)
+	If FirstSingIn = 0 or FirstSingIn >= 30 Then
+    	FindPic 1037,420,1138,459,"Attachment:\簽到.bmp",0.9,intX,intY
+    	If intX > 0 And intY > 0 Then 
+        	MoveTo intX, intY
+        	LeftClick 1
+        	Delay 500
+        	Sign_In = 1//(待改)
+    	End If
+    End If
+End Function
+//檢查簽到成功否
+Function Sign_In_Is_Success//(待改)7
+ 	//先檢查是不是到了刺蝟貓的未簽到頁面
+ 	//透過檢查下方工具欄(1130,1005)是否為"FFFFFF"白色通過
+ 	//是就呼叫簽到Function，並用錯誤檢查排錯
+ 	FirstSingIn = 0//拿來做簽到延遲，第一次0秒 第二次開始需要1秒延遲
+    NovelAppWhitePoint = 0
+    Do
+        IfColor 1130, 1005, "FFFFFF", 0 Then
+            NovelAppWhitePoint = 1
+        End If
+        Form1.InputBox3.Text = "0-Sign_In"
+        If Sign_In(FirstSingIn) = 1 Then 
+        	FirstSingIn = 1
+        End If
+        If NovelAppWhitePoint = 1 Then 
+            FindColorEx 1130,1005,1130,1005,"777777",1,1,intX,intY//檢查是否跳出簽到灰屏
+            If intX > 0 And intY > 0 Then 
+                IfColor 780, 260, "00BEF9", 0 Then //檢查是否跳出簽到成功刺蝟貓橙色顏色
+                    Exit Do
+                End If
+            End If
+//            FindColorEx 1130,1005,1130,1005,"2E2E2E",1,1,intX,intY
+//            If intX > 0 And intY > 0 Then  
+//                Exit Do
+//            End If
+        End If
+    	If FirstSingIn = 30 Then 
+    		FirstSingIn = 1
+    	End If
+    	If FirstSingIn > 0 Then 
+    		FirstSingIn = FirstSingIn + 1
+    	End If
+    	Form1.Sign_Times.Text = FirstSingIn
+    	Call Check_Wrong//錯誤檢查
+    Loop
+End Function
+//關閉夜神模擬器
+Function Close_Nox//(ok)
+    WindowsHwnd = Plugin.Window.Foreground()
+    WindowsName = Plugin.Window.GetText(WindowsHwnd)
+    Do
+        MoveTo 1140, 10
+        Delay 50
+        LeftClick 1
+        Delay 100
+        //移動到關閉，滑鼠點擊
+        FindPic 827,489,929,501,"Attachment:\確定關閉夜神模擬器嗎.bmp",0.9,intX,intY
+        If intX > 0 And intY > 0 Then 
+            Exit Do
+        End If
+    Loop
+    Do
+        KeyPress "Enter", 1
+        //按下確認關閉
+        Delay 100
+        FindPic 827,489,929,501,"Attachment:\確定關閉夜神模擬器嗎.bmp",0.9,intX,intY
+        If intX > 0 And intY > 0 Then 
+        Else 
+        	//檢查確認的確跳出簽到成功，才關閉夜神，缺乏周簽到數據//(待改)7
+            FindColorEx 1130,1005,1130,1005,"777777",1,1,intX,intY
+            If intX > 0 And intY > 0 Then 
+            Else 
+//                FindColorEx 1130,1005,1130,1005,"2E2E2E",1,1,intX,intY
+//                If intX > 0 And intY > 0 Then 
+//                Else 
+                    Exit Do
+//                End If
+            End If 
+        End If
+    Loop
+    
+End Function
+//選擇[不謝謝]來不更新刺蝟貓閱讀，或是退出活動頁面
+Function No_Thank()//(待改)(缺乏數據)
+//    FindPic 599,29,1157,1018,"Attachment:\不謝謝.bmp",0.9,NoThankX,NoThankY
+//    If NoThankX > 0 And NoThankY > 0 Then 
+//        MoveTo NoThankX+70, NoThankY+15
+//        Delay 50
+//        LeftClick 1
+//        Delay 1000
+//    End If
+//    FindPic 845,65,915,110,"Attachment:\活動.bmp",0.9,intX,intY
+//    If intX > 0 And intY > 0 Then 
+//        Delay 50
+//        KeyPress "Esc", 1
+//        Delay 50
+//    End If
+End Function
+//跳出錯誤開啟的書籍
+Function Jump_Out_Book//(待改)(缺少如果跳出雲端紀錄退出版)
+    FindPic 840,985,920,1010,"Attachment:\開到書本1.bmp",0.9,WrongOpenX1,WrongOpenY1
+    If WrongOpenX1 > 0 And WrongOpenY1 > 0 Then 
+        Delay 50
+        KeyPress "Esc", 1
+        Delay 1000
+    End If
+    FindPic 840,985,920,1010,"Attachment:\開到書本2.bmp",0.9,WrongOpenX2,WrongOpenY2
+    If WrongOpenX2 > 0 And WrongOpenY2 > 0 Then 
+        Delay 50
+        KeyPress "Esc", 1
+        Delay 1000
+    End If
+    FindPic 840,985,920,1010,"Attachment:\首次開到書本.bmp",0.9,WrongOpenX2,WrongOpenY2
+    If WrongOpenX2 > 0 And WrongOpenY2 > 0 Then 
+        Delay 50
+        KeyPress "Esc", 1
+        Delay 1000
+    End If
+    IfColor 1130, 1005, "666666", 0 Then//如果退出按太快，會導致刺蝟貓問是否退出刺蝟貓，此為偵測灰屏後取消退出
+        KeyPress "Esc", 1
+        Delay 3000
+    End If
+End Function
+//檢查夜神是否縱置，來確定是否打開了APP，並切換下一個視窗
+Function Check_App_Open//(ok)
+    Do
+        FindPic 1155,28,1194,1020,"Attachment:\確定是否縱置.bmp",0.9,intX,intY
+        If intX > 0 And intY > 0 Then 
+            Exit Do
+        End If
+        Call Nox_No_Respond//跳出夜神桌面沒回應時的對應
+        Call Find_HBookApp_And_Click_In_Nox()//搜尋夜神視窗裡面的刺蝟貓閱讀APP，並點擊(不會重複)
+    Loop
+    Call Next_Nox
+End Function
+//檢查刺蝟貓閱讀是否跳出已停止視窗
+Function Check_HBookApp_Stop//(待改)(缺乏數據)
+//    FindPic 470,225,1260,880,"Attachment:\歡樂書客已停止.bmp",0.9,intX,intY
+//    If intX > 0 And intY > 0 Then 
+//        MoveTo intX+80, intY+100
+//        LeftClick 1
+//    End If
+End Function
+//檢查刺蝟貓閱讀是否跳出夜神桌面沒有回應視窗
+Function Check_HBookApp_NoxDesktop_Stop//(ok)
+FindPic 700,450,1050,620,"Attachment:\縱的夜神桌面沒有回應.bmp",0.9,intX,intY
+If intX > 0 And intY > 0 Then
+	MoveTo intX + 170, intY + 120
+    LeftClick 1
+End If
+End Function
+//檢查刺蝟貓閱讀是否跳出沒有回應視窗
+Function Check_HBookApp_No_Respond//(待改)(缺乏數據)
+    FindPic 730,480,1010,510,"Attachment:\刺蝟貓沒有回應.bmp",0.9,intX,intY
+    If intX > 0 And intY > 0 Then 
+        MoveTo 960, 575
+        LeftClick 1
+    End If
+End Function
+//檢查夜神是否橫置，來確定是否跳出了APP，並點擊回來
+Function Check_App_Close//(ok)
+    FindPic 416,133,1520,164,"Attachment:\確定是否橫置.bmp",0.9,SX,SY
+    If SX > 0 And SY > 0 Then
+        FindPic 1517,163,1556,886,"Attachment:\確認是否橫置配件.bmp",1.0,SSX,SSY
+        If SSX > 0 And SSY > 0 Then 
+            Call Find_HBookApp_And_Click_In_Nox_R()
+        End If
+    End If
+End Function
+//切換下一個視窗
+Function Next_Nox//(ok)
+    Do
+    	//假如看到夜神模擬器位置，表示最前面的視窗還是橫置的點不到後面
+        FindPic 235,133,1638,194,"Attachment:\定位夜神模擬器位置.bmp",0.9,intX,intY
+        If intX > 0 And intY > 0 Then 
+        Else 
+            Delay 100
+            MoveTo 1570, 865
+            Delay 50
+            LeftClick 1
+            Exit Do
+        End If
+    Loop
+End Function
+//錯誤檢查
+Function Check_Wrong//(ok)
+    //  初次打開歡樂書客會有訊息，此函數可以關之
+    //	Call First_Open
+    Form1.InputBox3.Text = "1-No_Thank"
+    Call No_Thank()//選擇[不謝謝]來不更新歡樂書客，或是退出活動頁面
+    Form1.InputBox3.Text = "2-Jump_Out_Book"
+    Call Jump_Out_Book()//跳出錯誤開啟的書籍
+    Form1.InputBox3.Text = "3-Find_HBookApp_And"
+    Call Find_HBookApp_And_Click_In_Nox()//搜尋夜神視窗裡面的歡樂書客APP，並點擊(不會重複)
+    Form1.InputBox3.Text = "4-Nox_No_Respond"
+    Call Nox_No_Respond//跳出夜神桌面沒回應時的對應
+    Form1.InputBox3.Text = "5-Check_App_Close"
+    Call Check_App_Close//檢查夜神是否橫置，來確定是否跳出了APP，並點擊回來
+    Form1.InputBox3.Text = "6-Check_HBookApp_No_Respond"
+    Call Check_HBookApp_No_Respond
+    Form1.InputBox3.Text = "7-Check_HBookApp_Stop"
+    Call Check_HBookApp_Stop
+    Form1.InputBox3.Text = "8-Check_HBookApp_NoxDesktop_Stop"
+    Call Check_HBookApp_NoxDesktop_Stop
+    Call Skip_Simulator_Tutorial//跳過模擬器初次開啟教程
+    Call Google_Play_Stop//跳出GooglePlay服務已停止時按下確定
+    Call PushBullet_Windows_Exist//確保PushBullet視窗存在
+End Function
+//選擇打開哪幾個夜神模擬器
+Function Turn_On_Nox(Loc)//(ok)
+    //每個相差58像素高度
+    If Loc < 98 Then 
+        If Nox_Start < 7 Then 
+            MoveTo 1040, 295 + ((Nox_Start-1) * 58)
+            Delay 10000
+            //移動到第一格
+            MoveTo 1040, 295 + ((Nox_Start-1) * 58)
+            Nox_Start = Nox_Start + 1
+            LeftClick 1
+            Delay 50
+            //移動到第二格
+            MoveTo 1040, 295 + ((Nox_Start-1) * 58)
+            Nox_Start = Nox_Start + 1
+            LeftClick 1
+            Delay 50
+            //移動到第三格
+            MoveTo 1040, 295 + ((Nox_Start-1) * 58)
+            Nox_Start = Nox_Start + 1
+            LeftClick 1
+            //            Delay 50000
+            Delay 1000
+            Turn_On_Nox = 3
+        ElseIf Nox_Start = 7 Then
+            //移動到第一格
+            MoveTo 1040, 295 + ((Nox_Start-1) * 58)
+            Nox_Start = Nox_Start + 1
+            LeftClick 1
+            Delay 50
+            //移動到第二格
+            MoveTo 1040, 295 + ((Nox_Start-1) * 58)
+            Nox_Start = Nox_Start + 1
+            LeftClick 1
+            //            Delay 50000
+            Delay 1000
+            Turn_On_Nox = 2
+        ElseIf Nox_Start = 8 Then
+            //移動到第一格
+            MoveTo 1040, 295 + ((Nox_Start-1) * 58)
+            Nox_Start = Nox_Start + 1
+            LeftClick 1
+            //            Delay 50000
+            Delay 1000
+            Turn_On_Nox = 1
+        ElseIf Nox_Start = 9 Then
+            MoveTo 1040, 295 + ((6 - 1) * 58)
+            Delay 1000
+            MouseWheel -1
+            Delay 1000
+            //移動到第一格
+            MoveTo 1040, 295 + ((6-1) * 58)
+            LeftClick 1
+            Delay 50
+            //移動到第二格
+            MoveTo 1040, 295 + ((7-1) * 58)
+            LeftClick 1
+            Delay 50
+            //移動到第三格
+            MoveTo 1040, 295 + ((8-1) * 58)
+            LeftClick 1
+            //            Delay 50000
+            Delay 1000
+            Turn_On_Nox = 3
+        End If
+    Else 
+        MoveTo 1040, 295 + ((6 - 1) * 58)
+        Delay 1000
+        MouseWheel -1
+        Delay 1000
+        //移動到第一格
+        MoveTo 1040, 295 + ((6-1) * 58)
+        LeftClick 1
+        Delay 50
+        //移動到第二格
+        MoveTo 1040, 295 + ((7-1) * 58)
+        LeftClick 1
+        Delay 50
+        Turn_On_Nox = 2
+    End If
+	
+End Function
+//傳送訊息給Line
+Function Line_Send_Message(Loc)//(ok)
+	
+    Loc = Loc & WindowsName
+    H1 = Plugin.Window.Find("Qt5QWindowIcon", "手機簽到記錄")'父句柄
+    Call Plugin.Bkgnd.LeftClick(H1, 185, 545)
+    Call Plugin.Bkgnd.SendString(H1,Loc)
+    Call Plugin.Bkgnd.KeyPress(H1,13)	
+End Function
+//重複傳送訊息給Pushbullet他可以讓手機跳通知，按下1可停止
+Function Pushbullet_Send_Message_Loop(Loc)//(ok)
+    If CLng(Form1.WarringTimes.Text) > 0 Then 
+        FindPic 0,0,495,1079,"Attachment:\Pushbullet.bmp",0.9,PushbulletX,PushbulletY
+        If PushbulletX > 0 And PushbulletY > 0 Then 
+            SaveMousePos 
+            PushbulletMessageTimes = 0
+            Do
+                MoveTo PushbulletX+30, PushbulletY+360
+                LeftClick 1
+                H = Plugin.Window.Find(0, "PBChat Onecow-iPhone - Pushbullet")'父句柄
+                Call Plugin.Bkgnd.LeftClick(H, 30, 490)
+                Call Plugin.Bkgnd.SendString(H,Loc)
+                Call Plugin.Bkgnd.KeyPress(H, 13)
+                StopKey = GetLastKey()
+                If Stopkey = 49 Then 
+                    RestoreMousePos
+                    Exit Do
+                End If
+                If PushbulletMessageTimes <= CLng(Form1.WarringTimes.Text) Then 
+                    Delay 5000
+                Else 
+                    Delay 60000
+                End If
+                PushbulletMessageTimes = PushbulletMessageTimes + 1
+            Loop
+        Else
+            Line_Send_Message("Push沒有正常運作，改用Line通知")
+            Line_Send_Message (Loc)
+            Line_Send_Message ("腳本暫停，按任意鍵繼續")
+            WaitClick
+        End If
+    Else 
+        Line_Send_Message("靜音傳送")
+        Line_Send_Message (Loc)
+        Line_Send_Message ("腳本暫停，按任意鍵繼續")
+        WaitClick
+    End If
+
+End Function
+//單次傳送訊息給Pushbullet他可以讓手機跳通知
+Function Pushbullet_Send_Message(Loc)//(ok)
+    FindPic 0,0,495,1079,"Attachment:\Pushbullet.bmp",0.9,PushbulletX,PushbulletY
+    If PushbulletX > 0 And PushbulletY > 0 Then 
+        SaveMousePos
+        MoveTo PushbulletX+30, PushbulletY+360
+        LeftClick 1
+        H = Plugin.Window.Find(0, "PBChat Onecow-iPhone - Pushbullet")'父句柄
+        Call Plugin.Bkgnd.LeftClick(H, 30, 490)
+        Call Plugin.Bkgnd.SendString(H,Loc)
+        Call Plugin.Bkgnd.KeyPress(H, 13)
+        Line_Send_Message(Loc)
+    Else 
+        Line_Send_Message(Loc)
+    End If
+End Function
+//確認Line視窗是否開啟，以便傳訊
+Function Line_Windows_Is_There//(ok)
+    H1 = Plugin.Window.Find("Qt5QWindowIcon", "手機簽到記錄")'父句柄
+    If H1 = 0 Then 
+        Form1.InputBox3.Text = "Line視窗尚未開啟"
+        Do
+            H1 = Plugin.Window.Find("Qt5QWindowIcon", "手機簽到記錄")'父句柄
+            If H1 <> 0 Then
+                Exit Do
+            End If
+        Loop
+    End If
+End Function
+//TeamViewer關掉廣告視窗
+Function Deal_TeamViewer_AD//(ok)
+	
+    Form1.InputBox3.Text = "目標已鎖定，請關掉TeamViewer"
+    Do
+        H1 = Plugin.Window.Find("TV_ControlWin", "TeamViewer面板")'父句柄
+        If H1 = 0 Then 
+            Exit Do
+        End If
+    Loop
+    Jump = 0
+    Do
+        Hwnd1 = Plugin.Window.Find(0, "贊助工作階段")'父句柄
+        Hwnd2 = Plugin.Window.FindEx(Hwnd1, 0, "button", "確定")
+        Call Plugin.Bkgnd.LeftClick(Hwnd2, 2, 2)
+        If Hwnd1<>0 Then
+            Exit Do
+        End If
+        If Jump>10 Then
+            Exit Do
+        End If
+        Delay CLng(Form1.TeamViewWaitTime.Text)
+        Jump = Jump+1
+    Loop
+End Function
+//按鍵小精靈進入略過說明
+Function Skip_Read_Me//(ok)
+    H1 = Plugin.Window.Find("#32770", "NovelSingIn")'父句柄
+    Call Plugin.Window.Move(H1,1620,222)
+    H2 = Plugin.Window.FindEx(H1,0, "#32770", 0)
+    H3 = Plugin.Window.FindEx(H2,0, "Button", "開始使用>>")
+    Call Plugin.Bkgnd.LeftClick(H3,1,1)
+End Function
+//移動按鍵小精靈
+Function Move_Script//(ok)
+    H1 = Plugin.Window.Find("#32770", "NovelSingIn")'父句柄
+    Call Plugin.Window.Show(H1)
+    Call Plugin.Window.Move(H1,1620,222)
+End Function
+//跳過模擬器初次開啟教程
+Function Skip_Simulator_Tutorial
+FindPic 340,195,520,215,"Attachment:\模擬器基本使用方法.bmp",0.9,intX,intY
+If intX > 0 And intY > 0 Then
+KeyPress "Esc", 1
+End If
+End Function
+//跳出GooglePlay服務已停止時按下確定
+Function Google_Play_Stop
+	FindPic 725,480,1030,510,"Attachment:\GooglePlay服務已停止.bmp",0.9,intX,intY
+	If intX > 0 And intY > 0 Then
+	MoveTo 880, 575
+	LeftClick 1
+	End If
+End Function
+//確保PushBullet視窗存在
+Function PushBullet_Windows_Exist
+    IfColor 15,620,"67B34A",1 Then
+        IfColor 325,1010,"FFFFFF",1 Then
+            FindPic 0,0,1024,768,"Attachment:\PushBullet圈圈.bmp",0.7,intX,intY
+            If intX > 0 And intY > 0 Then
+                IfColor intX-21,intY+91,"67B34A",1 Then
+                    IfColor intX+289,intY+481,"FFFFFF",1 Then
+                        MoveTo intX ,intY
+                        LeftClick 1
+                    End If
+                End If
+                If intX <> 36 & intY <> 529 Then 
+                        FindPic 0,0,1024,768,"Attachment:\PushBullet圈圈.bmp",0.7,intX,intY
+                        If intX > 0 And intY > 0 Then
+                        End If
+                    MoveTo intX ,intY
+                    LeftDown 1
+                    MoveTo 10, 690
+                    LeftUp 1
+                End If
+                Delay 500
+            End If
+        End If 
+    End If
+End Function
+//置頂一下視窗
+Function TopWindows(NoxWindows)
+	hw = Plugin.Window.Find("Qt5QWindowIcon",NoxWindows)
+	Call Plugin.Window.Top(hw, 0)
+	Delay 50
+	Call Plugin.Window.Top(hw, 1)
+	
+End Function
+//置頂視窗
+Function TopWindowsAlways(C)
+	hw = Plugin.Window.Find("Qt5QWindowIcon",NoxWindows)
+	Call Plugin.Window.Top(hw, 0)
+End Function
+//取消置頂視窗
+Function TopWindowsAlways_undone(C)
+	hw = Plugin.Window.Find("Qt5QWindowIcon",NoxWindows)
+	Call Plugin.Window.Top(hw, 1)
+End Function
+Do
+    Call PushBullet_Windows_Exist
+Loop
+
+
+//重設計時器，並等待計時器重設完畢
+Function Reset_Wait_Time_Function//(ok)
+    ResetWaitTime = 1
+    TotalTime = 0
+    Do
+      
+        If ResetWaitTime = 0 Then 
+            Exit Do
+        End If
+       
+    Loop
+End Function
+Event Form1.Button1.Click
+    Nox_Start = 1
+    Form1.InputBox2.Text = 1
+End Event
+Event Form1.Button2.Click
+    Nox_Start = 2
+    Form1.InputBox2.Text = 2
+End Event
+Event Form1.Button3.Click
+    Nox_Start = 3
+    Form1.InputBox2.Text = 3
+End Event
+Event Form1.Button4.Click
+    Nox_Start = 4
+    Form1.InputBox2.Text = 4
+End Event
+Event Form1.Button5.Click
+    Nox_Start = 5
+    Form1.InputBox2.Text = 5
+End Event
+Event Form1.Button6.Click
+    Nox_Start = 6
+    Form1.InputBox2.Text = 6
+End Event
+Event Form1.Button7.Click
+    Nox_Start = 7
+    Form1.InputBox2.Text = 7
+End Event
+Event Form1.Button8.Click
+    Nox_Start = 8
+    Form1.InputBox2.Text = 8
+End Event
+Event Form1.Button9.Click
+    Nox_Start = 9
+    Form1.InputBox2.Text = "E"
+End Event
+Event Form1.TurnOFF_Warring.Click
+    Form1.WarringTimes.Text = 0
+End Event
+Event Form1.Reset_Warring.Click
+    Form1.WarringTimes.Text = 5
+End Event
+Event Form1.Reset_TeamViewWait.Click
+    Form1.TeamViewWaitTime.Text = 1000
+End Event
+Event Form1.TurnOFF_TeamViewWait.Click
+    Form1.TeamViewWaitTime.Text = 0
+End Event
+
+Sub CountdownTimer
+    WaitTime = 0
+    TotalTime = 0
+    
+    Do
+    	
+        TotalTime = TotalTime + 1
+        Form1.Total_Time.Text = TotalTime
+        If TotalTime > 300 Then 
+            If TotalTime - 300 < CLng(Form1.WarringTimes.Text) Then 
+          	    Pushbullet_Send_Message("全警告 超時300秒")
+                Line_Send_Message("全警告 超時300秒")
+            Else
+            End If
+        End If
+        Delay 1000
+        Form1.InputBox_WaitTurn.Text = WaitStatus
+        Select Case WaitStatus
+        Case 1
+//            Form1.InputBox_WaitTurn.Text = "1"
+            WaitTime = WaitTime + 1
+            Form1.InputBox_WaitTime.Text = WaitTime
+            If WaitTime - 180 < CLng(Form1.WarringTimes.Text) Then 
+                If WaitTime > 180 Then 
+                    FixMessage = 1
+                    Pushbullet_Send_Message ("初次開啟App出現超過180秒沒回應問題")
+                    Line_Send_Message ("初次開啟App出現超過180秒沒回應問題")
+                End If
+            Else
+            End If
+            If ResetWaitTime = 1 Then 
+                WaitStatus = 100
+                If FixMessage = 1 Then 
+                    If CLng(Form1.WarringTimes.Text) > 0 Then 
+                        Pushbullet_Send_Message("初次開啟App問題已正常運作")
+                    End If
+                    Line_Send_Message("初次開啟App問題已正常運作")
+                End If
+            End If
+        Case 2
+//            Form1.InputBox_WaitTurn.Text = "2"
+            WaitTime = WaitTime + 1
+            Form1.InputBox_WaitTime.Text = WaitTime
+            If ResetWaitTime = 1 Then 
+                WaitStatus = 100
+                //					If CLng(Form1.WarringTimes.Text) > 0 Then 
+                //						Pushbullet_Send_Message("CA問題已正常運作")
+                //					End If
+                //					Line_Send_Message("CA問題已正常運作")
+            End If
+        Case 3
+//            Form1.InputBox_WaitTurn.Text = "3"
+            WaitTime = WaitTime + 1
+            Form1.InputBox_WaitTime.Text = WaitTime
+            If WaitTime - 180 < CLng(Form1.WarringTimes.Text) Then 
+                If WaitTime > 180 Then 
+                    FixMessage = 1
+                    Pushbullet_Send_Message ("二次開啟App出現超過180秒沒回應問題")
+                    Line_Send_Message ("二次開啟App出現超過180秒沒回應問題")
+                End If
+            Else
+            End If
+            If ResetWaitTime = 1 Then 
+                WaitStatus = 100
+                If FixMessage = 1 Then 
+                    If CLng(Form1.WarringTimes.Text) > 0 Then 
+                        Pushbullet_Send_Message("二次開啟App問題已正常運作")
+                    End If
+                    Line_Send_Message("二次開啟App問題已正常運作")
+                End If
+            End If
+        Case 4
+//            Form1.InputBox_WaitTurn.Text = "4"
+            WaitTime = WaitTime + 1
+            Form1.InputBox_WaitTime.Text = WaitTime
+            If WaitTime - 100 < CLng(Form1.WarringTimes.Text) Then
+                If WaitTime > 100 Then 
+                    FixMessage = 1
+                    Pushbullet_Send_Message ("簽到階段出現超過100秒沒回應問題")
+                    Line_Send_Message ("簽到階段出現超過100秒沒回應問題")
+                End If
+            Else 
+            End If
+            If ResetWaitTime = 1 Then 
+                WaitStatus = 100
+                If FixMessage = 1 Then 
+                    If CLng(Form1.WarringTimes.Text) > 0 Then 
+                        Pushbullet_Send_Message("簽到階段問題已正常運作")
+                    End If
+                    Line_Send_Message("簽到階段問題已正常運作")
+                End If
+            End If
+        Case 5
+//            Form1.InputBox_WaitTurn.Text = "5"
+            WaitTime = WaitTime + 1
+            Form1.InputBox_WaitTime.Text = WaitTime
+            If WaitTime - 100 < CLng(Form1.WarringTimes.Text) Then 
+                If WaitTime > 100 Then 
+                    FixMessage = 1
+                    Pushbullet_Send_Message ("關閉階段出現超過100秒沒回應問題")
+                    Line_Send_Message ("關閉階段出現超過100秒沒回應問題")
+                End If
+             Else 
+            End If
+            If ResetWaitTime = 1 Then 
+                WaitStatus = 100
+                If FixMessage = 1 Then 
+                    If CLng(Form1.WarringTimes.Text) > 0 Then 
+                        Pushbullet_Send_Message("關閉階段問題已正常運作")
+                    End If
+                    Line_Send_Message("關閉階段問題已正常運作")
+                End If
+            End If
+        Case 100
+        	
+//            Form1.InputBox_WaitTurn.Text = ""
+//            Form1.InputBox_WaitTime.Text = ""
+            WaitTime = 0
+            FixMessage = 0
+            ResetWaitTime = 0
+        Case Else
+        End Select 
+    Loop
+End Sub
+Sub SingInProgram
+
+//    Pushbullet_Send_Message("簽到啟動")
+    //把TeamViewer視窗移走
+    Windows = Plugin.Window.Find("#32770", "TeamViewer")'父句柄
+    Call Plugin.Window.Move(Windows, 0, 1000)
+    Call Skip_Read_Me
+    Call Move_Script
+    //準備瞄準目標
+    Do	
+        If Nox_Start <> 0 Then 
+            Exit Do
+        End If
+    Loop
+    Call Line_Windows_Is_There
+    Call Deal_TeamViewer_AD
+    How_Many_Nox = 0
+    Curren_Nox = Form1.InputBox1.Text
+
+    Do
+        //////////////////////////////////////打開夜神前，打開APP前//////////////////////////////////////
+        Delay 30
+        How_Many_Nox = Turn_On_Nox(Curren_Nox)
+        TotalTime = 0
+        //////////////////////////////////////打開夜神前，打開APP前//////////////////////////////////////
+        //////////////////////////////////////打開夜神後，打開APP前//////////////////////////////////////
+        Times = 0
+        For How_Many_Nox
+            WaitStatus = 1
+            Call Find_HBookApp_And_Click_In_Nox_R()//搜尋夜神視窗裡面的刺蝟貓閱讀APP，並點擊(會重複找)
+            Call Reset_Wait_Time_Function
+        	
+            WaitStatus = 2
+            Call Deal_CA
+            Call Reset_Wait_Time_Function
+            
+            WaitStatus = 3
+            If Times < 2 Then 
+                Call Check_App_Open
+                Times = Times + 1
+                
+            End If
+            Call Reset_Wait_Time_Function
+        Next
+        //////////////////////////////////////打開夜神後，打開APP前//////////////////////////////////////
+        Delay 3000
+        //////////////////////////////////////打開夜神後，打開APP後//////////////////////////////////////
+        For How_Many_Nox
+            WaitStatus = 4
+            Call Sign_In_Is_Success//重複簽到，直到偵測到簽到成功
+            Call Reset_Wait_Time_Function
+        
+            Form1.InputBox3.Text = "6-Close"
+            WaitStatus = 5
+            Call Close_Nox//關閉夜神
+            Call Reset_Wait_Time_Function
+        
+            Call Line_Send_Message(Curren_Nox)
+            Curren_Nox = Curren_Nox + 1
+            Form1.InputBox1.Text = Curren_Nox
+        Next
+        //////////////////////////////////////打開夜神後，打開APP後//////////////////////////////////////
+        If Curren_Nox = Form1.EndNox.Text+1 Then 
+            Pushbullet_Send_Message ("簽到完成，請驗收")
+            Line_Send_Message("簽到完成，請驗收")
+            Exit Do
+        End If
+    Loop
+End Sub
+
+
